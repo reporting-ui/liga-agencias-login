@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Acceso Google · Liga de Agencias</title>
+<style>body{font:16px Arial,sans-serif;background:#f7f6fb;color:#25175e;display:grid;place-items:center;min-height:90vh;margin:0;padding:20px}.card{background:#fff;border-radius:18px;padding:30px;max-width:420px;box-shadow:0 5px 24px #26155712}p{color:#666078}#error{color:#a02c36}</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script></head>
+<body><main class="card"><h2>🏆 Liga de Agencias</h2><p>Elegí la cuenta de Google autorizada para consultar tu división.</p><div id="googleBtn"></div><p id="error" role="alert"></p></main>
+<script>
+const query=new URLSearchParams(location.search);
+const hash=new URLSearchParams(location.hash.slice(1));
+const clientId=query.get('client_id');
+const state=hash.get('state');
+const openerOrigin=hash.get('opener_origin');
+const error=document.getElementById('error');
+function onCredential(response){
+ if(!window.opener || window.opener.closed){error.textContent='La ventana original de la Liga está cerrada.';return;}
+ if(!openerOrigin || !/^https:\/\/[a-z0-9-]+\.googleusercontent\.com$/i.test(openerOrigin)){
+   error.textContent='Origen de la Liga no válido.';return;
+ }
+ window.opener.postMessage({type:'LIGA_GOOGLE_ID_TOKEN',state:state,credential:response.credential},openerOrigin);
+ error.textContent='Identidad enviada. Podés volver a la Liga.';
+ setTimeout(()=>window.close(),350);
+}
+let tries=0;
+function init(){
+ if(!clientId || !state || !window.opener){error.textContent='Abrí el acceso desde tu enlace de la Liga.';return;}
+ if(window.google?.accounts?.id){
+  google.accounts.id.initialize({client_id:clientId,callback:onCredential,auto_select:false});
+  google.accounts.id.renderButton(document.getElementById('googleBtn'),{theme:'outline',size:'large',text:'signin_with',width:260});
+ }else if(tries++<40)setTimeout(init,250);
+ else error.textContent='No se pudo cargar el inicio de sesión de Google.';
+}
+window.addEventListener('load',init);
+</script></body></html>
